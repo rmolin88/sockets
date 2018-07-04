@@ -1,0 +1,18 @@
+include_directories(${CMAKE_SOURCE_DIR}/inc)
+
+include_directories(SYSTEM
+		"${RAPIDJSON_INCLUDE_DIRS}"
+		"${GLOG_INCLUDE_DIRS}"
+		"${GTEST_INCLUDE_DIRS}"
+	)
+
+# Add executable and list sources to the executable
+add_executable(test_c_socket test_c_socket.cpp ${CMAKE_SOURCE_DIR}/src/c_socket.cpp)
+
+# Link test executable against gtest & gtest_main
+target_link_libraries(test_c_socket
+		${GTEST_BOTH_LIBRARIES}
+		${GLOG_LIBRARIES}
+	)
+
+add_test(test_c_socket ${EXECUTABLE_OUTPUT_PATH})
