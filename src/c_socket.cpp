@@ -1,11 +1,14 @@
 #include <iostream>
 #include <glog/logging.h>
+#include <string.h>
+#include <string>
+#include <errno.h>
 
 #include "c_socket.hpp"
 
-int c_socket_server::connect(std::string_view address, int port)
+int c_socket_server::connect(const std::string &address, int port)
 {
-	if (s_id > -1)
+	if (descriptor > -1)
 	{
 		LOG(WARNING) << "Socket already initialized and connected";
 		return 0;
@@ -23,23 +26,27 @@ int c_socket_server::connect(std::string_view address, int port)
 		return -2;
 	}
 
-	s_add.sin_port = port;
+	struct addrinfo hints, *add_info = nullptr;
+	memset((char *)&add_info,0,sizeof(add_info));        /*clear sockaddr structure*/ 
+	memset((char *)&hints,0,sizeof(hints));        /*clear sockaddr structure*/ 
 
-	if ((ptrp = getprotobyname(PROTOCOL_NAME.data())) == nullptr)
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = 0;
+
+	if (getaddrinfo(address.c_str(), std::to_string(port).c_str(), &hints, &add_info) != 0)
 	{
-		LOG(ERROR) << "Failed to get protocol by name\n";
+		LOG(ERROR) << "Failed getaddrinfo: \"" << strerror(errno) << "\"\n";
 		return -3;
 	}
 
-	std::cout << "ptrp->p_proto = " << ptrp->p_proto << std::endl;
-
-	if ((s_id = socket(PF_INET, SOCK_STREAM, ptrp->p_proto)) < 0)
+	if ((descriptor = socket(PF_INET, SOCK_STREAM, 0)) < 0)
 	{
-		LOG(ERROR) << "Failed to create socket: s_id = " << s_id << "\n";
+		LOG(ERROR) << "Failed to create socket: descriptor = " << descriptor << "\n";
 		return -4;
 	}
 
-	if (listen(s_id, SOMAXCONN) < 0)
+	if (listen(descriptor, SOMAXCONN) < 0)
 	{
 		LOG(ERROR) << "Failed to listen\n";
 		return -5;
@@ -50,10 +57,10 @@ int c_socket_server::connect(std::string_view address, int port)
 
 void c_socket_server::loop(void)
 {
-	socklen_t c_add_len = sizeof(c_add);
+	socklen_t c_add_len = 0;
 	int soc_id = -1;
 
-	if (s_id < 0)
+	if (descriptor < 0)
 	{
 		LOG(ERROR) << "Socket has being connected\n";
 		return;
@@ -68,6 +75,6 @@ void c_socket_server::loop(void)
 	while (1)
 	{
 		// soc_id = -1;
-		// if ((soc_id = accept(s_id)))
+		// if ((soc_id = accept(descriptor)))
 	}
 }
