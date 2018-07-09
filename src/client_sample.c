@@ -1,6 +1,6 @@
 /*client.c - code for example client program that uses TCP*/
 
-#ifndefunix
+#ifndef unix
 #define WIN32
 #include <windows.h>
 #include <winsock.h>
@@ -16,7 +16,7 @@
 #include <string.h>
 #define PROTOPORT 5193            /*default protocol port number*/
 extern int    errno;
-char localhost[] = “locaihost”;    /*default host name*/
+char localhost[] = "localhost";    /*default host name*/
 /* Program: client
  *
  *Purpose: allocate a socket, connect to a server, and print all output
@@ -30,8 +30,8 @@ char localhost[] = “locaihost”;    /*default host name*/
  * the client uses ocalhost”; if no protocol port is
  * specified, the client uses the default given by PROTOPORT.
  */
-main(argc, argv)
-	int argc;
+int main(int argc, char **argv)
+{
 	struct hostent *ptrh;         /*pointer to a host table entry*/
 	struct protoent *ptrp;      /*pointer to a protocol table entry*/ 
 	struct sockaddr_in sad;     /*structure to hold an IP address*/
@@ -39,13 +39,13 @@ main(argc, argv)
 	int port;                     /*protocol port number*/
 	char *host;                 /*pointer to host name*/
 	int n;                         /*number of characters read*/
-	char buf[l000];             /*buffer for data from the server*/#
-#ifdefWIN32
+	char buf[1000];             /*buffer for data from the server*/
+#ifdef WIN32
 	WSADATA wsaData;
 	WSAStartup(0x0101,&wsaData);
 #endif
-memset((char 5)&sad,0,sizeof(sad))      /*clear sockaddr structure*/
-	sad.sin_family AF_INET;                  /*set family to Internet*/
+	memset((char *)&sad,0,sizeof(sad));      /*clear sockaddr structure*/
+	sad.sin_family = AF_INET;                  /*set family to Internet*/
 
 	/*Check command-line argument for protocol port and extract*/
 	/*port number if one is specified. Otherwise, use the default*/
@@ -56,64 +56,65 @@ memset((char 5)&sad,0,sizeof(sad))      /*clear sockaddr structure*/
 	} else {
 		port = PROTOPORT;                         /*use default port number*/
 	}
-if (port > 0)                                 /*test for legal value*/
-	sad.sin_port = htons((u_short)port);
+
+	if (port > 0)                                 /*test for legal value*/
+		sad.sin_port = htons((u_short)port);
 	else {                                      /*print error message and exit*/
-		fprintf(stderr,"bad port number %\n”,argv[2]);
-		exit(l);
+		fprintf(stderr,"bad port number % \n", argv[2]);
+		exit(1);
 	}
 
 /*Check host argument and assign host name.*/
 
-if(argc>1){
-	host = argv[1];                         /*if host argument specified*/
-}else{
-	host = localhost;
-}
+	if(argc>1) host = argv[1];                         /*if host argument specified*/
+	else host = localhost;
 
 /*Convert host name to equvalent IP address and copy to sad*/
 
-ptrh = gethostbyname(host);
-if (((char *)ptrh) = NULL) {
-	fprintf(stderr”invalid host: %s\n”,host);
-	exit(1);
-}    
-memcpy(&sad.sin_addr, ptrh->h_addr, ptrh->h_length);
+	ptrh = gethostbyname(host);
 
-/*Map TCP transport protocol name to protocol number*/
+	if (((char *) ptrh) == NULL)
+	{
+		fprintf(stderr, "invalid host: %s\n", host);
+		exit(2);
+	}    
+	memcpy(&sad.sin_addr, ptrh->h_addr, ptrh->h_length);
 
-if (((int)(ptrp = getprotobyname("tcp”))) == 0) {
-	fprintf(stderr, “cannot map \“tcp\” to protocol number”);
-	exit(1);
-}
-/*Create a socket*/
+	/*Map TCP transport protocol name to protocol number*/
 
-sd = socket(PF_INET, SOCK_STREAM, ptrp->p_proto);
-if(sd<O) {
-	fprintf(stderr, “socket creation failed\n”);
-	exit(l);
-}
-
-/*Connect the socket to the specified server*/
-
-if (connect(sd, (struct sockaddr *)&sad, sizeof(sad)) <0) {
-	fprintf(stderr,”connect failed\n”).
+	if (((int)(ptrp = getprotobyname("tcp"))) == 0) {
+		fprintf(stderr, "cannot map \“tcp\” to protocol number");
 		exit(1);
-}
+	}
+	/*Create a socket*/
 
-/*Repeatedly read data from socket and write to user’s saeen*/
+	sd = socket(PF_INET, SOCK_STREAM, ptrp->p_proto);
+	if (sd<0) 
+	{
+		fprintf(stderr, "socket creation failed\n");
+		exit(3);
+	}
 
-n = recv(sd, buf, sizeof(buf), 0);
-while (n> 0) {
-	write(1 ,buf,n);
+	/*Connect the socket to the specified server*/
+
+	if (connect(sd, (struct sockaddr *)&sad, sizeof(sad)) <0) {
+		fprintf(stderr,"connect failed\n");
+			exit(4);
+	}
+
+	/*Repeatedly read data from socket and write to user’s saeen*/
+
 	n = recv(sd, buf, sizeof(buf), 0);
-}
+	while (n> 0) {
+		write(1 ,buf,n);
+		n = recv(sd, buf, sizeof(buf), 0);
+	}
 
-/*Close the socket*/
+	/*Close the socket*/
 
-closesocket(sd);
+	closesocket(sd);
 
-/*Terminate the client program gracefully*/
+	/*Terminate the client program gracefully*/
 
-exit(0) ;
+	exit(0) ;
 }

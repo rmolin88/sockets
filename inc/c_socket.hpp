@@ -4,7 +4,9 @@
 #ifndef unix
 #define WIN32
 #include <windows.h>
-#include <winsock.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <stdlib.h>
 #else
 #define closesocket close
 #include <sys/types.h>
@@ -17,22 +19,67 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+
+#include <string>
 
 class c_socket_server
 {
-	// Obtained from /etc/protocols
-	const int PROTOCOL_NUMBER = 6;
-	const std::string_view PROTOCOL_NAME = "tcp";
-
+	// Server's file descriptor
 	int descriptor;
+	// Accepted connection file descriptor
+	int conn_fd;
+	const int MAXDATASIZE = 100;
 
 public:
 
-	c_socket_server()
-		: descriptor(-1) {}
+	c_socket_server() : descriptor(-1), conn_fd(-1)
+	{
+#ifdef WIN32
+		WSADATA wsaData;
+		WSAStartup(MAKEWORD(2, 2), &wsaData);
+#endif
+	}
 
-	int connect(const std::string &address, int port);
-	void loop(void);
+	~c_socket_server()
+	{
+		closesocket(descriptor);
+#ifdef WIN32
+		WSACleanup();
+#endif
+	}
+
+	int connect(int port);
+	int wait_for_incoming_connection(void);
+	int recv_info(void);
+};
+
+class c_socket_client
+{
+	int descriptor;
+	const int MAXDATASIZE = 100;
+public:
+	c_socket_client() : descriptor(-1)
+	{
+#ifdef WIN32
+		WSADATA wsaData;
+		WSAStartup(MAKEWORD(2, 2), &wsaData);
+#endif
+	}
+
+	~c_socket_client()
+	{
+		if (descriptor >= 0)
+		{
+			closesocket(descriptor);
+#ifdef WIN32
+			WSACleanup();
+#endif
+		}
+	}
+
+	int connect(const std::string& host, int port);
+	int send_info();
 };
 
 #endif
